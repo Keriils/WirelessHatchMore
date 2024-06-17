@@ -1,4 +1,4 @@
-package com.myname.mymodid;
+package Xir.WirelessHatchMore.Main;
 
 import java.io.File;
 
