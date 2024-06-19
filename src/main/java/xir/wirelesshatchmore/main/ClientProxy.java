@@ -1,4 +1,4 @@
-package Xir.WirelessHatchMore.Main;
+package xir.wirelesshatchmore.main;
 
 public class ClientProxy extends CommonProxy {
 

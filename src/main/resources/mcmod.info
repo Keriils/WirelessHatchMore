@@ -3,7 +3,7 @@
 	"modList": [{
 		"modid": "${modId}",
 		"name": "${modName}",
-		"description": "Add more wireless hatch!!!",
+		"description": "Add more wireless hatch ! ! !",
 		"version": "${modVersion}",
 		"mcversion": "${minecraftVersion}",
 		"url": "https://github.com/Keriils",

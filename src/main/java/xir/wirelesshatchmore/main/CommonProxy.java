@@ -1,10 +1,11 @@
-package Xir.WirelessHatchMore.Main;
+package xir.wirelesshatchmore.main;
 
-import Xir.WirelessHatchMore.Tags;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import xir.wirelesshatchmore.Tags;
+import xir.wirelesshatchmore.config.Config;
 
 public class CommonProxy {
 

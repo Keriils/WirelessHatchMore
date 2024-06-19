@@ -1,4 +1,4 @@
-package Xir.WirelessHatchMore.Main;
+package xir.wirelesshatchmore.config;
 
 import java.io.File;
 
