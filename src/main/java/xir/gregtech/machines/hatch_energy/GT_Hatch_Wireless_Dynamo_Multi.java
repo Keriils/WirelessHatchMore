@@ -11,9 +11,10 @@ import static gregtech.api.enums.GT_Values.AuthorColen;
 import static gregtech.api.enums.GT_Values.V;
 import static gregtech.common.misc.WirelessNetworkManager.addEUToGlobalEnergyMap;
 import static gregtech.common.misc.WirelessNetworkManager.strongCheckOrAddUser;
-import static net.minecraft.util.StatCollector.translateToLocal;
 
 import java.util.UUID;
+
+import net.minecraft.util.EnumChatFormatting;
 
 import com.github.technus.tectech.thing.metaTileEntity.hatch.GT_MetaTileEntity_Hatch_DynamoMulti;
 import com.github.technus.tectech.util.CommonValues;
@@ -24,7 +25,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.interfaces.tileentity.IWirelessEnergyHatchInformation;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GT_Utility;
-import net.minecraft.util.EnumChatFormatting;
 import xir.gregtech.enums.AutoValueText;
 import xir.wirelesshatchmore.utils.LangTrans;
 
@@ -41,37 +41,26 @@ public class GT_Hatch_Wireless_Dynamo_Multi extends GT_MetaTileEntity_Hatch_Dyna
             aNameRegional,
             aTier,
             0,
-            new String[]{GRAY + LangTrans.trans("wireless_hatch_tooltips_1"),
+            new String[] { GRAY + LangTrans.trans("wireless_hatch_tooltips_1"),
                 GRAY + LangTrans.trans("wireless_hatch_tooltips_2"),
-                AuthorColen + GRAY
-                    + BOLD
-                    + " & "
-                    + BLUE
-                    + BOLD
-                    + "Cloud"
-                    + GRAY
-                    + BOLD
-                    + " & "
-                    + AutoValueText.Keriils,
-                LangTrans.trans("wireless_hatch_tooltips_3")
-                    + EnumChatFormatting.YELLOW
+                AuthorColen + GRAY + BOLD + " & " + BLUE + BOLD + "Cloud" + GRAY + BOLD + " & " + AutoValueText.Keriils,
+                LangTrans.trans("wireless_hatch_tooltips_3") + EnumChatFormatting.YELLOW
                     + GT_Utility.formatNumbers(aAmp * CommonValues.V[aTier])
                     + EnumChatFormatting.RESET
                     + " EU/t",
-                LangTrans.trans("wireless_hatch_tooltips_4")
-                    + EnumChatFormatting.GREEN
+                LangTrans.trans("wireless_hatch_tooltips_4") + EnumChatFormatting.GREEN
                     + GT_Utility.formatNumbers(CommonValues.V[aTier])
                     + " ("
                     + GT_Utility.getColoredTierNameFromTier((byte) aTier)
                     + EnumChatFormatting.GREEN
                     + ")"
-                    + EnumChatFormatting.GRAY},
+                    + EnumChatFormatting.GRAY },
             aAmp);
         TT_Utility.setTier(aTier, this);
     }
 
     public GT_Hatch_Wireless_Dynamo_Multi(String aName, int aTier, int aAmp, String[] aDescription,
-                                          ITexture[][][] aTextures) {
+        ITexture[][][] aTextures) {
         super(aName, aTier, aAmp, aDescription, aTextures);
     }
 
@@ -91,7 +80,7 @@ public class GT_Hatch_Wireless_Dynamo_Multi extends GT_MetaTileEntity_Hatch_Dyna
                 TEXTURE_OVERLAY = OVERLAYS_ENERGY_IN_WIRELESS_LASER;
                 break;
         }
-        return new ITexture[]{aBaseTexture, TEXTURE_OVERLAY[mTier]};
+        return new ITexture[] { aBaseTexture, TEXTURE_OVERLAY[mTier] };
     }
 
     @Override
@@ -110,7 +99,7 @@ public class GT_Hatch_Wireless_Dynamo_Multi extends GT_MetaTileEntity_Hatch_Dyna
                 TEXTURE_OVERLAY = OVERLAYS_ENERGY_IN_WIRELESS_LASER;
                 break;
         }
-        return new ITexture[]{aBaseTexture, TEXTURE_OVERLAY[mTier]};
+        return new ITexture[] { aBaseTexture, TEXTURE_OVERLAY[mTier] };
     }
 
     @Override
