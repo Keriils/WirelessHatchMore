@@ -10,6 +10,7 @@ public class LangTrans {
     public static String trans(String langkey) {
         return translateToLocal(langkey);
     }
+
     public static String transFormat(String langkey) {
         return translateToLocalFormatted(langkey);
     }
