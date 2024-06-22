@@ -44,6 +44,7 @@ public class WirelessHatchMore {
         proxy.init(event);
         GT_Loader.energyHatchMore();
         GT_Loader.dynamoHatchMore();
+        GT_Loader.test();
     }
 
     @Mod.EventHandler

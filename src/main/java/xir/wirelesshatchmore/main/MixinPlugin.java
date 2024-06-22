@@ -1,4 +1,4 @@
-package xir.wirelesshatchmore;
+package xir.wirelesshatchmore.main;
 
 import java.util.List;
 import java.util.Set;
