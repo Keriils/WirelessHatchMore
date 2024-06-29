@@ -19,8 +19,7 @@ public class LateMixins implements ILateMixinLoader {
     public List<String> getMixins(Set<String> loadedMods) {
         ArrayList<String> mixins = new ArrayList<>();
         if (loadedMods.contains("gregtech")) {
-            mixins.add("EOH_getStoredFluid_Mixin");
-            mixins.add("EOH_drainFluid_Mixin");
+            mixins.add("EOH_Mixin");
         }
         return mixins;
     }

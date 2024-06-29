@@ -4,7 +4,7 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATC
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATCH_ACTIVE;
 import static xir.gregtech.enums.Energy_Hatch_List.EOH_Hatch_ME;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 
 import javax.annotation.Nullable;
@@ -49,21 +49,17 @@ import gregtech.api.render.TextureFactory;
 public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     implements IPowerChannelState, IAddGregtechLogo, IAddUIWidgets {
 
-    private static final int EOH_HATCH_SLOTS = 3;
-    private static final int TIER = 14;
-    private static final ArrayList<FluidStack> FORCE_NULL_LIST = new ArrayList<>();
-    private static final FluidStack[] eohMatchFluid = new FluidStack[] {
+    public static final int EOH_HATCH_SLOTS = 3;
+    public static final int TIER = 14;
+    public static final FluidStack[] eohMatchFluid = new FluidStack[] {
         new FluidStack(MaterialsUEVplus.RawStarMatter.mFluid, 1), new FluidStack(Materials.Hydrogen.mGas, 1),
         new FluidStack(Materials.Helium.mGas, 1) };
-    private static final int BILLION = 1_000_000_000;
-    private final ArrayList<FluidStack> allOutList = new ArrayList<>();
+    private final long[] eohFluidAmount = new long[EOH_HATCH_SLOTS];
+    private final long[] preset_EOH_FluidAmount = new long[EOH_HATCH_SLOTS];
+
     @Nullable
     protected AENetworkProxy gridProxy = null;
     protected BaseActionSource requestSource = null;
-    private int mHydrogenHeliumTier = 0;
-    private int presetHydrogenHeliumTier = 0;
-    private long mRawStarMatterAmount = 0L;
-    private long presetStarMatterAmount = 10L;
     private boolean astralArrayMode = true;
     private int mTickLoading;
     private int mStartTick;
@@ -104,41 +100,26 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
         traceCountInvoke++;
     }
 
-    public ArrayList<FluidStack> getStoredFluids() {
-        AENetworkProxy proxy = getProxy();
-        if (proxy == null || !proxy.isActive() || forceStop) {
-            return FORCE_NULL_LIST;
-        }
-        if (allOutList.isEmpty()) {
-            if (astralArrayMode) {
-                while (mRawStarMatterAmount > 0) {
-                    int amount = (int) Math.min(mRawStarMatterAmount, Integer.MAX_VALUE);
-                    allOutList.add(new FluidStack(MaterialsUEVplus.RawStarMatter.mFluid, amount));
-                    mRawStarMatterAmount -= amount;
-                }
-            } else {
-                for (int i = 0; i < mHydrogenHeliumTier; i++) {
-                    allOutList.add(new FluidStack(Materials.Helium.mGas, BILLION));
-                    allOutList.add(new FluidStack(Materials.Hydrogen.mGas, BILLION));
-                }
-                mHydrogenHeliumTier = 0;
-            }
-        }
-        return forceStop ? FORCE_NULL_LIST : allOutList;
+    public long[] getEOHFluidAmount() {
+        return eohFluidAmount;
     }
 
     public boolean checkAeFluid() {
         boolean checkResult = true;
-        for (int i = (astralArrayMode ? 0 : 1); i < (astralArrayMode ? 1 : eohMatchFluid.length); i++) {
+
+        for (int i = 0; i < EOH_HATCH_SLOTS; i++) {
             AENetworkProxy proxy = getProxy();
             if (proxy == null || !proxy.isActive()) {
                 return false;
+            }
+            if (preset_EOH_FluidAmount[i] == 0) {
+                continue;
             }
             try {
                 IMEMonitor<IAEFluidStack> sg = proxy.getStorage()
                     .getFluidInventory();
                 IAEFluidStack request = AEFluidStack.create(eohMatchFluid[i]);
-                long amount = astralArrayMode ? presetStarMatterAmount : (long) presetHydrogenHeliumTier * BILLION;
+                long amount = preset_EOH_FluidAmount[i];
                 request.setStackSize(amount);
                 IAEFluidStack result = sg.extractItems(request, Actionable.SIMULATE, getRequestSource());
                 checkResult = result != null && result.getStackSize() == amount && checkResult;
@@ -149,12 +130,17 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
 
     public void removeAeFluid() {
         AENetworkProxy proxy = getProxy();
-        for (int i = (astralArrayMode ? 0 : 1); i < (astralArrayMode ? 1 : eohMatchFluid.length); i++) {
+
+        for (int i = 0; i < EOH_HATCH_SLOTS; i++) {
+            if (eohFluidAmount[i] == 0) {
+                continue;
+            }
+
             try {
                 IMEMonitor<IAEFluidStack> sg = proxy.getStorage()
                     .getFluidInventory();
-                long amount = astralArrayMode ? presetStarMatterAmount : (long) presetHydrogenHeliumTier * BILLION;
                 IAEFluidStack request = AEFluidStack.create(eohMatchFluid[i]);
+                long amount = preset_EOH_FluidAmount[i];
                 request.setStackSize(amount);
                 IAEFluidStack extractionResult = sg.extractItems(request, Actionable.MODULATE, getRequestSource());
                 proxy.getEnergy()
@@ -168,19 +154,27 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
         }
     }
 
+    public boolean allFluidAmountZero(long[] fluidAmount) {
+        return Arrays.stream(fluidAmount)
+            .allMatch(value -> value == 0L);
+    }
+
+    @Override
+    public void onPreTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
+        super.onPreTick(aBaseMetaTileEntity, aTick);
+        if (!forceStop && aTick % 20 == 0 && allFluidAmountZero(eohFluidAmount)) {
+            if (checkAeFluid()) {
+                for (int i = 0; i < EOH_HATCH_SLOTS; i++) {
+                    eohFluidAmount[i] = preset_EOH_FluidAmount[i];
+                }
+                removeAeFluid();
+            }
+        }
+    }
+
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTimer) {
         if (getBaseMetaTileEntity().isServerSide()) {
-            if (allOutList.isEmpty() && !forceStop && aTimer % 20 == 0) {
-                if (checkAeFluid() && (mRawStarMatterAmount == 0 || mHydrogenHeliumTier == 0)) {
-                    mRawStarMatterAmount = presetStarMatterAmount;
-                    mHydrogenHeliumTier = presetHydrogenHeliumTier;
-                    removeAeFluid();
-                }
-            }
-            if (!forceStop && !allOutList.isEmpty() && allOutList.get(0).amount == 0) {
-                allOutList.clear();
-            }
             if (aTimer % 20 == 0) {
                 getBaseMetaTileEntity().setActive(isActive());
             }
@@ -288,15 +282,17 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
 
+        aNBT.setLong("presentRawStarMatterAmount", preset_EOH_FluidAmount[0]);
+        aNBT.setLong("presentHydrogenHeliumAmount", preset_EOH_FluidAmount[1]);
+        aNBT.setLong("presentHeliumAmount", preset_EOH_FluidAmount[2]);
+        aNBT.setLong("mRawStarMatterAmount", eohFluidAmount[0]);
+        aNBT.setLong("mHydrogenHeliumAmount", eohFluidAmount[1]);
+        aNBT.setLong("mHeliumAmount", eohFluidAmount[2]);
         aNBT.setInteger("traceCount", traceCount);
         aNBT.setInteger("traceCountInvoke", traceCountInvoke);
-        aNBT.setInteger("presetHydrogenHeliumTier", presetHydrogenHeliumTier);
-        aNBT.setLong("presetStarMatterAmount", presetStarMatterAmount);
         aNBT.setInteger("mTickLoading", mTickLoading);
         aNBT.setInteger("mStartTick", mStartTick);
         aNBT.setBoolean("AstralArrayMode", astralArrayMode);
-        aNBT.setInteger("mHydrogenHeliumTier", mHydrogenHeliumTier);
-        aNBT.setLong("mRawStarMatterAmount", mRawStarMatterAmount);
         aNBT.setBoolean("additionalConnection", additionalConnection);
         getProxy().writeToNBT(aNBT);
     }
@@ -305,15 +301,17 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
 
+        eohFluidAmount[0] = aNBT.getLong("mRawStarMatterAmount");
+        eohFluidAmount[1] = aNBT.getLong("mHydrogenHeliumAmount");
+        eohFluidAmount[2] = aNBT.getLong("mHeliumAmount");
+        preset_EOH_FluidAmount[0] = aNBT.getLong("presentRawStarMatterAmount");
+        preset_EOH_FluidAmount[1] = aNBT.getLong("presentHydrogenHeliumAmount");
+        preset_EOH_FluidAmount[2] = aNBT.getLong("presentHeliumAmount");
         traceCount = aNBT.getInteger("traceCount");
         traceCountInvoke = aNBT.getInteger("traceCountInvoke");
-        presetHydrogenHeliumTier = aNBT.getInteger("presetHydrogenHeliumTier");
-        presetStarMatterAmount = aNBT.getLong("presetStarMatterAmount");
         mTickLoading = aNBT.getInteger("mTickLoading");
         mStartTick = aNBT.getInteger("mStartTick");
         astralArrayMode = aNBT.getBoolean("AstralArrayMode");
-        mHydrogenHeliumTier = aNBT.getInteger("mHydrogenHeliumTier");
-        mRawStarMatterAmount = aNBT.getLong("mRawStarMatterAmount");
         additionalConnection = aNBT.getBoolean("additionalConnection");
         getProxy().readFromNBT(aNBT);
     }
