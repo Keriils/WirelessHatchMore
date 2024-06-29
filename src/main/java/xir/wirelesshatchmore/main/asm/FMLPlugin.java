@@ -1,10 +1,11 @@
 package xir.wirelesshatchmore.main.asm;
 
-import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
-
 import java.util.Map;
 
+import cpw.mods.fml.relauncher.IFMLLoadingPlugin;
+
 public class FMLPlugin implements IFMLLoadingPlugin {
+
     @Override
     public String[] getASMTransformerClass() {
         return new String[0];

@@ -1,6 +1,6 @@
 package xir.gregtech.loader;
 
-import static xir.gregtech.enums.Energy_Hatch_List.GT_Integration_ME_Hatch;
+import static xir.gregtech.enums.Energy_Hatch_List.EOH_Hatch_ME;
 import static xir.gregtech.enums.Energy_Hatch_List.eM_dynamoWirelessMulti16_IV;
 import static xir.gregtech.enums.Energy_Hatch_List.eM_dynamoWirelessMulti16_LuV;
 import static xir.gregtech.enums.Energy_Hatch_List.eM_dynamoWirelessMulti16_UHV;
@@ -126,22 +126,14 @@ import static xir.gregtech.enums.Energy_Hatch_List.eM_energyWirelessTunnel7_UV;
 import static xir.gregtech.enums.Energy_Hatch_List.eM_energyWirelessTunnel7_ZPM;
 import static xir.wirelesshatchmore.utils.LangTrans.trans;
 
-import xir.gregtech.machines.hatch_ae.GT_Hatch_Crafting_Integration_ME;
+import xir.gregtech.machines.hatch_ae.EOH_Hatch;
 import xir.gregtech.machines.hatch_energy.GT_Hatch_Wireless_Dynamo_Multi;
 import xir.gregtech.machines.hatch_energy.GT_Hatch_Wireless_Energy_Multi;
 
 public class GT_Loader {
 
     public static void test() {
-        //  test metaID from 25123 to 25150
-        GT_Integration_ME_Hatch.set(
-            new GT_Hatch_Crafting_Integration_ME(
-                25123,
-                "test_hatch",
-                "Integration_hatch",
-                true
-            ).getStackForm(1L)
-        );
+        EOH_Hatch_ME.set(new EOH_Hatch(25666, "EOH_Hatch", "EOH_Hatch").getStackForm(1L));
     }
 
     public static void energyHatchMore() {
