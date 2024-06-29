@@ -1,5 +1,26 @@
 package xir.gregtech.machines.hatch_ae;
 
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATCH;
+import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATCH_ACTIVE;
+import static xir.gregtech.enums.Energy_Hatch_List.EOH_Hatch_ME;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+
+import javax.annotation.Nullable;
+
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChatComponentTranslation;
+import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidStack;
+
+import com.gtnewhorizons.modularui.api.screen.ModularWindow;
+import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
+import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
+import com.gtnewhorizons.modularui.common.widget.SlotWidget;
+import com.gtnewhorizons.modularui.common.widget.TextWidget;
+
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;
 import appeng.api.implementations.IPowerChannelState;
@@ -14,11 +35,6 @@ import appeng.me.GridAccessException;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.util.item.AEFluidStack;
-import com.gtnewhorizons.modularui.api.screen.ModularWindow;
-import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
-import com.gtnewhorizons.modularui.common.widget.DrawableWidget;
-import com.gtnewhorizons.modularui.common.widget.SlotWidget;
-import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.MaterialsUEVplus;
 import gregtech.api.gui.modularui.GT_UITextures;
@@ -29,19 +45,6 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.implementations.GT_MetaTileEntity_Hatch_Input;
 import gregtech.api.render.TextureFactory;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ChatComponentTranslation;
-import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.FluidStack;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.EnumSet;
-
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATCH;
-import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATCH_ACTIVE;
-import static xir.gregtech.enums.Energy_Hatch_List.EOH_Hatch_ME;
 
 public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     implements IPowerChannelState, IAddGregtechLogo, IAddUIWidgets {
@@ -49,10 +52,9 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     private static final int EOH_HATCH_SLOTS = 3;
     private static final int TIER = 14;
     private static final ArrayList<FluidStack> FORCE_NULL_LIST = new ArrayList<>();
-    private static final FluidStack[] eohMatchFluid = new FluidStack[]{
-        new FluidStack(MaterialsUEVplus.RawStarMatter.mFluid, 1),
-        new FluidStack(Materials.Hydrogen.mGas, 1),
-        new FluidStack(Materials.Helium.mGas, 1)};
+    private static final FluidStack[] eohMatchFluid = new FluidStack[] {
+        new FluidStack(MaterialsUEVplus.RawStarMatter.mFluid, 1), new FluidStack(Materials.Hydrogen.mGas, 1),
+        new FluidStack(Materials.Helium.mGas, 1) };
     private static final int BILLION = 1_000_000_000;
     private final ArrayList<FluidStack> allOutList = new ArrayList<>();
     @Nullable
@@ -71,8 +73,7 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     private int traceCountInvoke = 0;
 
     public EOH_Hatch(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, TIER, EOH_HATCH_SLOTS,
-            new String[]{"EOH modular"});
+        super(aID, aName, aNameRegional, TIER, EOH_HATCH_SLOTS, new String[] { "EOH modular" });
     }
 
     public EOH_Hatch(String aName, String[] aDescription, ITexture[][][] aTextures) {
@@ -86,12 +87,12 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
 
     @Override
     public ITexture[] getTexturesActive(ITexture aBaseTexture) {
-        return new ITexture[]{aBaseTexture, TextureFactory.of(OVERLAY_ME_INPUT_FLUID_HATCH_ACTIVE)};
+        return new ITexture[] { aBaseTexture, TextureFactory.of(OVERLAY_ME_INPUT_FLUID_HATCH_ACTIVE) };
     }
 
     @Override
     public ITexture[] getTexturesInactive(ITexture aBaseTexture) {
-        return new ITexture[]{aBaseTexture, TextureFactory.of(OVERLAY_ME_INPUT_FLUID_HATCH)};
+        return new ITexture[] { aBaseTexture, TextureFactory.of(OVERLAY_ME_INPUT_FLUID_HATCH) };
     }
 
     public void invokeArgsFirst() {
@@ -134,14 +135,14 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
                 return false;
             }
             try {
-                IMEMonitor<IAEFluidStack> sg = proxy.getStorage().getFluidInventory();
+                IMEMonitor<IAEFluidStack> sg = proxy.getStorage()
+                    .getFluidInventory();
                 IAEFluidStack request = AEFluidStack.create(eohMatchFluid[i]);
                 long amount = astralArrayMode ? presetStarMatterAmount : (long) presetHydrogenHeliumTier * BILLION;
                 request.setStackSize(amount);
                 IAEFluidStack result = sg.extractItems(request, Actionable.SIMULATE, getRequestSource());
                 checkResult = result != null && result.getStackSize() == amount && checkResult;
-            } catch (final GridAccessException ignored) {
-            }
+            } catch (final GridAccessException ignored) {}
         }
         return checkResult;
     }
@@ -150,7 +151,8 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
         AENetworkProxy proxy = getProxy();
         for (int i = (astralArrayMode ? 0 : 1); i < (astralArrayMode ? 1 : eohMatchFluid.length); i++) {
             try {
-                IMEMonitor<IAEFluidStack> sg = proxy.getStorage().getFluidInventory();
+                IMEMonitor<IAEFluidStack> sg = proxy.getStorage()
+                    .getFluidInventory();
                 long amount = astralArrayMode ? presetStarMatterAmount : (long) presetHydrogenHeliumTier * BILLION;
                 IAEFluidStack request = AEFluidStack.create(eohMatchFluid[i]);
                 request.setStackSize(amount);
@@ -217,7 +219,7 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
 
     @Override
     public boolean onWireCutterRightClick(ForgeDirection side, ForgeDirection wrenchingSide, EntityPlayer aPlayer,
-                                          float aX, float aY, float aZ) {
+        float aX, float aY, float aZ) {
         additionalConnection = !additionalConnection;
         updateValidGridProxySides();
         aPlayer.addChatComponentMessage(
@@ -243,7 +245,6 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
         }
         return this.gridProxy;
     }
-
 
     @Override
     public boolean isPowered() {
@@ -320,13 +321,15 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     @Override
     public void addUIWidgets(ModularWindow.Builder builder, UIBuildContext buildContext) {
         builder.widget(
-                new DrawableWidget().setDrawable(GT_UITextures.PICTURE_SCREEN_BLACK)
-                    .setPos(7, 16)
-                    .setSize(71, 45))
-            /*.widget(
-                new DrawableWidget().setDrawable(GT_UITextures.PICTURE_GAUGE)
-                    .setPos(79, 34)
-                    .setSize(18, 18))*/
+            new DrawableWidget().setDrawable(GT_UITextures.PICTURE_SCREEN_BLACK)
+                .setPos(7, 16)
+                .setSize(71, 45))
+            /*
+             * .widget(
+             * new DrawableWidget().setDrawable(GT_UITextures.PICTURE_GAUGE)
+             * .setPos(79, 34)
+             * .setSize(18, 18))
+             */
             .widget(
                 new SlotWidget(inventoryHandler, getInputSlot())
                     .setBackground(getGUITextureSet().getItemSlot(), GT_UITextures.OVERLAY_SLOT_IN)
