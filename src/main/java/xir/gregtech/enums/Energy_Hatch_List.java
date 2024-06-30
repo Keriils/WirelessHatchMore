@@ -154,6 +154,7 @@ public enum Energy_Hatch_List implements IItemContainer {
     eM_dynamoWirelessTunnel7_UHV,
     GT_Integration_ME_Hatch,
     EOH_Hatch_ME,
+    EOH_Hatch_ME_Rework,
 
     ;
 

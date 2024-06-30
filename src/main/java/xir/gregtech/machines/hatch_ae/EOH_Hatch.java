@@ -4,7 +4,6 @@ import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATC
 import static gregtech.api.enums.Textures.BlockIcons.OVERLAY_ME_INPUT_FLUID_HATCH_ACTIVE;
 import static xir.gregtech.enums.Energy_Hatch_List.EOH_Hatch_ME;
 
-import java.util.Arrays;
 import java.util.EnumSet;
 
 import javax.annotation.Nullable;
@@ -49,31 +48,24 @@ import gregtech.api.render.TextureFactory;
 public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     implements IPowerChannelState, IAddGregtechLogo, IAddUIWidgets {
 
-    public static final int EOH_HATCH_SLOTS = 3;
-    public static final int TIER = 14;
-    public static final FluidStack[] eohMatchFluid = new FluidStack[] {
+    public static final byte EOH_FLUID_TYPE_AMOUNT = 3;
+    public static final FluidStack[] EOH_MATCH_FLUID = new FluidStack[] {
         new FluidStack(MaterialsUEVplus.RawStarMatter.mFluid, 1), new FluidStack(Materials.Hydrogen.mGas, 1),
         new FluidStack(Materials.Helium.mGas, 1) };
-    private final long[] eohFluidAmount = new long[EOH_HATCH_SLOTS];
-    private final long[] preset_EOH_FluidAmount = new long[EOH_HATCH_SLOTS];
+    public final long[] expectedFluidAmount = new long[EOH_FLUID_TYPE_AMOUNT];
 
     @Nullable
     protected AENetworkProxy gridProxy = null;
     protected BaseActionSource requestSource = null;
-    private boolean astralArrayMode = true;
-    private int mTickLoading;
-    private int mStartTick;
+    private boolean astralArrayMode = false;
     private boolean additionalConnection = false;
-    private boolean forceStop = false;
-    private int traceCount = 0;
-    private int traceCountInvoke = 0;
 
     public EOH_Hatch(int aID, String aName, String aNameRegional) {
-        super(aID, aName, aNameRegional, TIER, EOH_HATCH_SLOTS, new String[] { "EOH modular" });
+        super(aID, aName, aNameRegional, 14, 0, new String[] { "EOH modular" });
     }
 
     public EOH_Hatch(String aName, String[] aDescription, ITexture[][][] aTextures) {
-        super(aName, EOH_HATCH_SLOTS, TIER, aDescription, aTextures);
+        super(aName, 0, 14, aDescription, aTextures);
     }
 
     @Override
@@ -91,95 +83,53 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
         return new ITexture[] { aBaseTexture, TextureFactory.of(OVERLAY_ME_INPUT_FLUID_HATCH) };
     }
 
-    public void invokeArgsFirst() {
-        traceCount++;
-    }
-
-    @Override
-    public void updateSlots() {
-        traceCountInvoke++;
-    }
-
-    public long[] getEOHFluidAmount() {
-        return eohFluidAmount;
-    }
-
-    public boolean checkAeFluid() {
-        boolean checkResult = true;
-
-        for (int i = 0; i < EOH_HATCH_SLOTS; i++) {
-            AENetworkProxy proxy = getProxy();
-            if (proxy == null || !proxy.isActive()) {
-                return false;
-            }
-            if (preset_EOH_FluidAmount[i] == 0) {
-                continue;
-            }
-            try {
-                IMEMonitor<IAEFluidStack> sg = proxy.getStorage()
-                    .getFluidInventory();
-                IAEFluidStack request = AEFluidStack.create(eohMatchFluid[i]);
-                long amount = preset_EOH_FluidAmount[i];
-                request.setStackSize(amount);
-                IAEFluidStack result = sg.extractItems(request, Actionable.SIMULATE, getRequestSource());
-                checkResult = result != null && result.getStackSize() == amount && checkResult;
-            } catch (final GridAccessException ignored) {}
-        }
-        return checkResult;
-    }
-
-    public void removeAeFluid() {
+    public boolean processAeFluid() {
         AENetworkProxy proxy = getProxy();
 
-        for (int i = 0; i < EOH_HATCH_SLOTS; i++) {
-            if (eohFluidAmount[i] == 0) {
+        // Check the fluid so that it can be safely removed
+        for (byte i = 0; i < EOH_FLUID_TYPE_AMOUNT; i++) {
+            if (expectedFluidAmount[i] == 0) {
                 continue;
             }
 
             try {
                 IMEMonitor<IAEFluidStack> sg = proxy.getStorage()
                     .getFluidInventory();
-                IAEFluidStack request = AEFluidStack.create(eohMatchFluid[i]);
-                long amount = preset_EOH_FluidAmount[i];
+                IAEFluidStack request = AEFluidStack.create(EOH_MATCH_FLUID[i]);
+                long amount = expectedFluidAmount[i];
+                request.setStackSize(amount);
+                IAEFluidStack result = sg.extractItems(request, Actionable.SIMULATE, getRequestSource());
+                if (result == null || result.getStackSize() != amount) {
+                    return false;
+                }
+            } catch (GridAccessException e) {
+                return false;
+            }
+        }
+
+        // Returns true if fluid can be safely removed, false otherwise
+        for (byte i = 0; i < EOH_FLUID_TYPE_AMOUNT; i++) {
+            if (expectedFluidAmount[i] == 0) {
+                continue;
+            }
+
+            try {
+                IMEMonitor<IAEFluidStack> sg = proxy.getStorage()
+                    .getFluidInventory();
+                IAEFluidStack request = AEFluidStack.create(EOH_MATCH_FLUID[i]);
+                long amount = expectedFluidAmount[i];
                 request.setStackSize(amount);
                 IAEFluidStack extractionResult = sg.extractItems(request, Actionable.MODULATE, getRequestSource());
                 proxy.getEnergy()
                     .extractAEPower(amount, Actionable.MODULATE, PowerMultiplier.CONFIG);
                 if (extractionResult == null || extractionResult.getStackSize() != amount) {
-                    forceStop = true;
+                    return false;
                 }
             } catch (GridAccessException e) {
-                forceStop = true;
+                return false;
             }
         }
-    }
-
-    public boolean allFluidAmountZero(long[] fluidAmount) {
-        return Arrays.stream(fluidAmount)
-            .allMatch(value -> value == 0L);
-    }
-
-    @Override
-    public void onPreTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        super.onPreTick(aBaseMetaTileEntity, aTick);
-        if (!forceStop && aTick % 20 == 0 && allFluidAmountZero(eohFluidAmount)) {
-            if (checkAeFluid()) {
-                for (int i = 0; i < EOH_HATCH_SLOTS; i++) {
-                    eohFluidAmount[i] = preset_EOH_FluidAmount[i];
-                }
-                removeAeFluid();
-            }
-        }
-    }
-
-    @Override
-    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTimer) {
-        if (getBaseMetaTileEntity().isServerSide()) {
-            if (aTimer % 20 == 0) {
-                getBaseMetaTileEntity().setActive(isActive());
-            }
-        }
-        super.onPostTick(aBaseMetaTileEntity, aTimer);
+        return true;
     }
 
     private BaseActionSource getRequestSource() {
@@ -193,6 +143,21 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
         getProxy().onReady();
     }
 
+    @Override
+    public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTimer) {
+        if (getBaseMetaTileEntity().isServerSide()) {
+            if (aTimer % 20 == 0) {
+                getBaseMetaTileEntity().setActive(isActive());
+            }
+        }
+        super.onPostTick(aBaseMetaTileEntity, aTimer);
+    }
+
+    @Override
+    public void onFacingChange() {
+        updateValidGridProxySides();
+    }
+
     private void updateValidGridProxySides() {
         if (additionalConnection) {
             getProxy().setValidSides(EnumSet.complementOf(EnumSet.of(ForgeDirection.UNKNOWN)));
@@ -204,11 +169,6 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     @Override
     public AECableType getCableConnectionType(ForgeDirection forgeDirection) {
         return isOutputFacing(forgeDirection) ? AECableType.SMART : AECableType.NONE;
-    }
-
-    @Override
-    public void onFacingChange() {
-        updateValidGridProxySides();
     }
 
     @Override
@@ -239,6 +199,9 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
         }
         return this.gridProxy;
     }
+
+    @Override
+    public void updateSlots() {}
 
     @Override
     public boolean isPowered() {
@@ -282,16 +245,9 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     public void saveNBTData(NBTTagCompound aNBT) {
         super.saveNBTData(aNBT);
 
-        aNBT.setLong("presentRawStarMatterAmount", preset_EOH_FluidAmount[0]);
-        aNBT.setLong("presentHydrogenHeliumAmount", preset_EOH_FluidAmount[1]);
-        aNBT.setLong("presentHeliumAmount", preset_EOH_FluidAmount[2]);
-        aNBT.setLong("mRawStarMatterAmount", eohFluidAmount[0]);
-        aNBT.setLong("mHydrogenHeliumAmount", eohFluidAmount[1]);
-        aNBT.setLong("mHeliumAmount", eohFluidAmount[2]);
-        aNBT.setInteger("traceCount", traceCount);
-        aNBT.setInteger("traceCountInvoke", traceCountInvoke);
-        aNBT.setInteger("mTickLoading", mTickLoading);
-        aNBT.setInteger("mStartTick", mStartTick);
+        aNBT.setLong("presentRawStarMatterAmount", expectedFluidAmount[0]);
+        aNBT.setLong("presentHydrogenHeliumAmount", expectedFluidAmount[1]);
+        aNBT.setLong("presentHeliumAmount", expectedFluidAmount[2]);
         aNBT.setBoolean("AstralArrayMode", astralArrayMode);
         aNBT.setBoolean("additionalConnection", additionalConnection);
         getProxy().writeToNBT(aNBT);
@@ -301,16 +257,9 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
     public void loadNBTData(NBTTagCompound aNBT) {
         super.loadNBTData(aNBT);
 
-        eohFluidAmount[0] = aNBT.getLong("mRawStarMatterAmount");
-        eohFluidAmount[1] = aNBT.getLong("mHydrogenHeliumAmount");
-        eohFluidAmount[2] = aNBT.getLong("mHeliumAmount");
-        preset_EOH_FluidAmount[0] = aNBT.getLong("presentRawStarMatterAmount");
-        preset_EOH_FluidAmount[1] = aNBT.getLong("presentHydrogenHeliumAmount");
-        preset_EOH_FluidAmount[2] = aNBT.getLong("presentHeliumAmount");
-        traceCount = aNBT.getInteger("traceCount");
-        traceCountInvoke = aNBT.getInteger("traceCountInvoke");
-        mTickLoading = aNBT.getInteger("mTickLoading");
-        mStartTick = aNBT.getInteger("mStartTick");
+        expectedFluidAmount[0] = aNBT.getLong("presentRawStarMatterAmount");
+        expectedFluidAmount[1] = aNBT.getLong("presentHydrogenHeliumAmount");
+        expectedFluidAmount[2] = aNBT.getLong("presentHeliumAmount");
         astralArrayMode = aNBT.getBoolean("AstralArrayMode");
         additionalConnection = aNBT.getBoolean("additionalConnection");
         getProxy().readFromNBT(aNBT);
@@ -322,12 +271,6 @@ public class EOH_Hatch extends GT_MetaTileEntity_Hatch_Input
             new DrawableWidget().setDrawable(GT_UITextures.PICTURE_SCREEN_BLACK)
                 .setPos(7, 16)
                 .setSize(71, 45))
-            /*
-             * .widget(
-             * new DrawableWidget().setDrawable(GT_UITextures.PICTURE_GAUGE)
-             * .setPos(79, 34)
-             * .setSize(18, 18))
-             */
             .widget(
                 new SlotWidget(inventoryHandler, getInputSlot())
                     .setBackground(getGUITextureSet().getItemSlot(), GT_UITextures.OVERLAY_SLOT_IN)
